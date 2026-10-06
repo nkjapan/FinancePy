@@ -813,7 +813,7 @@ class Date:
         letter being d, w, m , y for day, week, month or year. This is case
         independent. For example 10Y means 10 years while 120m also means 10
         years. The date is NOT weekend or holiday calendar adjusted. This must
-        be done AFTERWARDS."""
+        be done AFTERWARDS. The time of day is preserved."""
 
         list_flag = isinstance(tenor, list)
         if not list_flag:
@@ -824,30 +824,14 @@ class Date:
         for tenor_item in tenor:
             tenor_obj = Tenor.as_tenor(str_or_tenor=tenor_item)
 
-            # start with current date
-            d, m, y = self.d, self.m, self.y
-            # Do not int this to keep HMS
-            excel_dt = self.excel_dt
-
             if tenor_obj.units == TenorUnit.DAYS:
-                new_excel_dt = excel_dt + int(tenor_obj.num_periods)
-                d, m, y = ymd_from_excel(new_excel_dt)
-                new_dt = Date._make_fast(d, m, y, new_excel_dt)
+                new_dt = self.add_days(int(tenor_obj.num_periods))
 
             elif tenor_obj.units == TenorUnit.WEEKS:
-                new_excel_dt = excel_dt + int(tenor_obj.num_periods) * 7
-                d, m, y = ymd_from_excel(new_excel_dt)
-                new_dt = Date._make_fast(d, m, y, new_excel_dt)
+                new_dt = self.add_days(int(tenor_obj.num_periods) * 7)
 
             elif tenor_obj.units == TenorUnit.MONTHS:
-                # reuse add_months (already _make_fast optimized)
                 new_dt = self.add_months(int(tenor_obj.num_periods))
-
-                # handle case when Feb truncates to 28/29 (preserve original d if possible)
-                y, m = new_dt.y, new_dt.m
-                d = min(self.d, new_dt.eom().d)
-                excel_dt = excel_from_ymd(d, m, y)
-                new_dt = Date._make_fast(d, m, y, excel_dt)
 
             elif tenor_obj.units == TenorUnit.YEARS:
                 # just months × 12
